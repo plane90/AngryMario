@@ -1,21 +1,18 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
-using UnityEngine.Events;
 
 public class GameManager : MonoBehaviour
 {
     [System.Serializable]
     private class ClearFlag
     {
-        public int coins;
+        public int requiredCoins;
         
-        public bool CheckHitAllBlock()
+        public bool IsClear(int blockCount)
         {
-            return true;
+            return blockCount <= 0;
         }
     }
 
@@ -29,43 +26,60 @@ public class GameManager : MonoBehaviour
     [SerializeField] private ClearFlag clearFlag;
     [SerializeField] private TimeAndCoinBoxUI timeAndCoinBoxUI;
 
-    public int gainedCoins;
-    public GameObject coin;
-    public Transform genPosOfCoin;
-    public static GameManager Instance { get; set; }
-
-    private WaitForSeconds ws = new WaitForSeconds(0.1f);
-    
+    [Header("Coin Info")]
+    private int gainedCoins;
     private List<GameObject> coins = new List<GameObject>();
 
-    [Header("Time info")]
-    public int maxTime = 100;
+    [SerializeField] private GameObject coin;
+    [SerializeField] private Transform genPosOfCoin;
 
+    [Header("Time Info")]
     private string finishedTime;
-    private bool isRecorded = false;
-
     private int ElapsedTime { get { return Mathf.RoundToInt(Time.time - timeOffset); } }
     private int Minutes { get { return (int)(ElapsedTime / 60.0f); } }
     private int Seconds { get { return Mathf.RoundToInt(ElapsedTime % 60.0f); } }
     private float timeOffset;
 
-    private bool isClearGame = false;
+    [SerializeField] private int maxTime = 100;
 
-    private bool isEndGame = false;
+    [Header("Block Info")]
+    private int currentBlockCount = 0;
 
-    [Header("Description Info")]
-    public Canvas descriptionCanvas;
+    public static GameManager Instance { get; set; }
 
-    [Header("Pause Info")]
-    public Canvas pauseCanvas;
+    private bool isRecorded = false;
+    private WaitForSeconds ws = new WaitForSeconds(0.1f);
+
+    public void StartStage()
+    {
+        Init();
+        StartCoroutine(RunTimerAndCheckTime());
+    }
+
+    public int GetRequiredCoinsForClear()
+    {
+        return clearFlag.requiredCoins;
+    }
+
+    public void AddCoin()
+    {
+        gainedCoins++;
+        Vector3 genPosOffset = Vector3.up + UnityEngine.Random.insideUnitSphere * 0.5f;
+        GameObject generatedCoin = Instantiate(coin, genPosOfCoin.position + genPosOffset, Quaternion.identity);
+        coins.Add(generatedCoin);
+        timeAndCoinBoxUI.coins.text = "Coins\n" + gainedCoins.ToString();
+    }
+
+    public void DecreaseBlockCount()
+    {
+        currentBlockCount--;
+    }
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else if (Instance != null) Destroy(this.gameObject);
         DontDestroyOnLoad(this.gameObject);
-
-        //timeAndCoinBoxUI.coins.text = "Coins\n" + gainedCoins.ToString();
     }
 
     private void OnEnable()
@@ -75,20 +89,11 @@ public class GameManager : MonoBehaviour
 
     private void Init()
     {
-        isEndGame = false;
+        currentBlockCount = FindObjectsOfType<Brick>().Length +
+            FindObjectsOfType<Brick_core>().Length +
+            FindObjectsOfType<Brick_power>().Length;
         gainedCoins = 0;
         isRecorded = false;
-    }
-
-    public int GetNumberOfCoinsForClear()
-    {
-        return clearFlag.coins;
-    }
-
-    public void StartStage()
-    {
-        Init();
-        StartCoroutine(RunTimerAndCheckTime());
     }
 
     private IEnumerator RunTimerAndCheckTime()
@@ -101,18 +106,19 @@ public class GameManager : MonoBehaviour
             yield return null;
             remainingTime -= Time.deltaTime;
             timeAndCoinBoxUI.remainingTime.text = "남은시간\n" + RemainingMinute(remainingTime) + " : " + RemainingSecond(remainingTime);
-            if(gainedCoins >= clearFlag.coins && !isRecorded)
+            if(gainedCoins >= clearFlag.requiredCoins && !isRecorded)
             {
                 isRecorded = true;
                 finishedTime = RemainingMinute(remainingTime) + " : " + RemainingSecond(remainingTime);
             }
+            if (clearFlag.IsClear(currentBlockCount)) break;
         }
         CheckCoinsAndAssessResult();
     }
 
     private void CheckCoinsAndAssessResult()
     {
-        if (gainedCoins >= clearFlag.coins)
+        if (gainedCoins >= clearFlag.requiredCoins)
             ClearStage();
         else
             TimeOver();
@@ -130,31 +136,18 @@ public class GameManager : MonoBehaviour
 
     private void EndGame()
     {
-        //isEndGame = true;
-        //UIManager.Instance.ShowEndGameUI();
 		SoundManager.Instance.AudioSetting(SoundManager.Instance.gameObject, SoundManager.Instance.endGame, false);
     }
 
     private void ClearStage()
     {
-        //isEndGame = true;
         UIManager.Instance.ShowClearStageUI(finishedTime, gainedCoins.ToString());
 		SoundManager.Instance.AudioSetting(SoundManager.Instance.gameObject, SoundManager.Instance.clearStage, false);
     }
 
     private void TimeOver()
     {
-        UIManager.Instance.ShowTimeOverUI();
+        UIManager.Instance.ShowTimeOverUI(gainedCoins.ToString());
 		SoundManager.Instance.AudioSetting(SoundManager.Instance.gameObject, SoundManager.Instance.timeOver, false);
-    }
-    
-    public void AddCoin()
-    {
-        gainedCoins++;
-
-        Vector3 genPosOffset = Vector3.up + UnityEngine.Random.insideUnitSphere * 0.5f;
-        GameObject generatedCoin = Instantiate(coin, genPosOfCoin.position + genPosOffset, Quaternion.identity);
-        coins.Add(generatedCoin);
-        timeAndCoinBoxUI.coins.text = "Coins\n" + gainedCoins.ToString();
     }
 }

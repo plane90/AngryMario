@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -40,8 +39,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Canvas fadeScreen;
 
     public static UIManager Instance { get; set; }
-
-    private bool isClearGame = false;
+    
     private int currentStage = 0;
 
     private void Awake()
@@ -54,14 +52,10 @@ public class UIManager : MonoBehaviour
     public void OnClickStartButtonOfTitle()
     {
         currentStage = 1;
-
-        LoadScene("World_1");
-        GameManager.Instance.StartStage();
-
-        //Time.timeScale = 0;
+        LoadSceneAndStartStage("World_1");
     }
 
-    private void LoadScene(string sceneName)
+    private void LoadSceneAndStartStage(string sceneName)
     {
         StartCoroutine(FadeOutAndLoadScene(sceneName));
     }
@@ -76,19 +70,29 @@ public class UIManager : MonoBehaviour
             target.GetComponent<Image>().color = new Color(0, 0, 0, alpha);
             yield return null;
         }
-        SceneManager.LoadScene(sceneName);
-        yield return null;
-        //if (GameManager.Instance != null)
-        //    GameManager.Instance.gameObject.SetActive(true);
-        //descriptionUI.description.text = "또는 Coin " +
-        //    GameManager.Instance.GetNumberOfCoinsForClear().ToString() + " 개 획득\n" + "(Coin의 획득처)";
-        
+        yield return SceneManager.LoadSceneAsync(sceneName);
+
         target = Instantiate(fadeScreen, GameObject.Find("VR Origin").transform);
         while (alpha > 0)
         {
             alpha -= 1.5f * Time.deltaTime;
             target.GetComponent<Image>().color = new Color(0, 0, 0, alpha);
             yield return null;
+        }
+
+        if (currentStage != 0)
+        {
+            GameManager.Instance.gameObject.SetActive(true);
+            GameManager.Instance.StartStage();
+        }
+
+        if(currentStage == 1)
+        {
+            descriptionUI.canvas.enabled = true;
+            descriptionUI.description.text = "또는 Coin " +
+                GameManager.Instance.GetRequiredCoinsForClear().ToString() + " 개 획득\n" + "(Coin의 획득처)";
+            descriptionUI.canvas.referencePixelsPerUnit++;
+            Time.timeScale = 0;
         }
     }
 
@@ -106,45 +110,36 @@ public class UIManager : MonoBehaviour
 
     public void OnClickStartButtonOfDescription()
     {
+        descriptionUI.canvas.referencePixelsPerUnit--;
         descriptionUI.canvas.enabled = false;
         timeOverUI.canvas.enabled = false;
         clearUI.canvas.enabled = false;
-        //Time.timeScale = 1;
+        Time.timeScale = 1;
     }
 
     public void OnClickRestartButton()
     {
-        //isEndGame = true;
         timeOverUI.canvas.enabled = false;
-        //SceneManager.LoadScene("World_" + currentStage.ToString());
-        //Init();
+        LoadSceneAndStartStage("World_" + currentStage.ToString());
     }
 
     public void OnClickGoTitleButton()
     {
         currentStage = 0;
-        this.gameObject.SetActive(false);
+        GameManager.Instance.gameObject.SetActive(false);
         timeOverUI.canvas.enabled = false;
         clearUI.canvas.enabled = false;
         endGameUI.canvas.enabled = false;
-        //Init();
-    }
-
-    public void OnClickGoTitle()
-    {
-        SceneManager.LoadScene("TitleMenu");
+        LoadSceneAndStartStage("TitleMenu");
     }
 
     public void OnClickNextButton()
     {
         currentStage = 2;
         clearUI.canvas.enabled = false;
-        LoadScene("World_" + currentStage.ToString());
-        GameManager.Instance.StartStage();
-        //Init();
+        LoadSceneAndStartStage("World_" + currentStage.ToString());
     }
-
-    //public void ShowEndGameUI()
+    
     public void ShowClearStageUI(string finishedTime, string gainedCoin)
     {
         if (currentStage == 1)
@@ -163,17 +158,11 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    //public void ShowClearStageUI()
-    //{
-    //    //clearCanvas.enabled = true;
-    //    //timeFinishedText.text = string.Format(((int)(timeFinished / 60)).ToString()
-    //    //    + " : " + Mathf.RoundToInt(timeFinished % 60).ToString());
-    //    //CoinCountTextOfClear.text = coinCount.ToString();
-    //    //clearCanvas.referencePixelsPerUnit++;
-    //}
-
-    public void ShowTimeOverUI()
+    public void ShowTimeOverUI(string gainedCoins)
     {
-
+        timeOverUI.canvas.enabled = true;
+        timeOverUI.gainedCoin.text = gainedCoins;
+        timeOverUI.canvas.referencePixelsPerUnit++;
+        timeOverUI.canvas.referencePixelsPerUnit--;
     }
 }

@@ -28,6 +28,7 @@ public class Brick : Block
         _renderer = GetComponent<Renderer>();
 
         _rigidbody.isKinematic = true;
+        //GameManager.Instance.IncreaseBlockCount();
     }
 
     /// <summary>
@@ -64,6 +65,7 @@ public class Brick : Block
         yield return new WaitForSeconds(5.0f);
         _collider.isTrigger = true;
         yield return new WaitForSeconds(3.0f);
+        GameManager.Instance.DecreaseBlockCount();
         Destroy(this.gameObject);
     }
 
@@ -86,6 +88,7 @@ public class Brick : Block
         yield return new WaitForSeconds(5.0f);
         _collider.isTrigger = true;
         yield return new WaitForSeconds(3.0f);
+        GameManager.Instance.DecreaseBlockCount();
         this.gameObject.SetActive(false);
         Destroy(this.gameObject);
     }

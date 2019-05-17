@@ -20,10 +20,6 @@ public class Brick_core : Block
         _rigidbody.isKinematic = true;
     }
 
-    /// <summary>
-    /// OnCollisoinEnter블록의 Rigidbody컴포넌트의 속성을 참조합니다.
-    /// </summary>
-    /// <param name="other"></param>
     public void OnTriggerEnter(Collider other)
     {
         if (other.GetComponent<ToCrashWithBlock>() != null && !isReact && other.GetComponent<ToCrashWithBlock>().isFromMachine)
@@ -35,11 +31,8 @@ public class Brick_core : Block
             return;
         }
     }
-
-    /// <summary>
-    /// OnTriggerEnter가 호출되면 코인 생성, 머티리얼 교체 그리고 사라짐을 처리합니다.
-    /// </summary>
-    /// <returns></returns>
+    
+    // OnTriggerEnter가 호출되면 코인 생성, 머티리얼 교체 그리고 사라짐을 처리합니다.
     private IEnumerator HitReaction()
     {
         isReact = true;
@@ -53,6 +46,7 @@ public class Brick_core : Block
         yield return new WaitForSeconds(5.0f);
         _collider.isTrigger = true;
         yield return new WaitForSeconds(3.0f);
+        GameManager.Instance.DecreaseBlockCount();
         Destroy(this.gameObject);
     }
 
